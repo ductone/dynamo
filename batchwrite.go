@@ -172,7 +172,7 @@ func (bw *BatchWrite) Run(ctx context.Context) (wrote int, err error) {
 
 			backoff := boff.NextBackOff()
 			if backoff > 0 {
-				l.Info("BatchWriteItem", zap.Int("wrote", wrote), zap.Int("unprocessed", len(res.UnprocessedItems)), zap.Duration("backoff_seconds", boff.NextBackOff()))
+				l.Info("BatchWriteItem", zap.Int("wrote", wrote), zap.Int("unprocessed", len(res.UnprocessedItems)), zap.Duration("backoff_seconds", backoff))
 			}
 			// need to sleep when re-requesting, per spec
 			if err := time.SleepWithContext(ctx, backoff); err != nil {
