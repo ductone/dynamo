@@ -116,7 +116,7 @@ func (bw *BatchWrite) ConsumedCapacity(cc *ConsumedCapacity) *BatchWrite {
 // For batches with more than 25 operations, an error could indicate that
 // some records have been written and some have not. Consult the wrote
 // return amount to figure out which operations have succeeded.
-func (bw *BatchWrite) Run(ctx context.Context, tenantID string) (wrote int, err error) {
+func (bw *BatchWrite) Run(ctx context.Context) (wrote int, err error) {
 	l := ctxzap.Extract(ctx)
 	if bw.err != nil {
 		return 0, bw.err
@@ -172,7 +172,7 @@ func (bw *BatchWrite) Run(ctx context.Context, tenantID string) (wrote int, err 
 
 			backoff := boff.NextBackOff()
 			if backoff > 0 {
-				l.Info("BatchWriteItem", zap.Int("wrote", wrote), zap.Int("unprocessed", len(res.UnprocessedItems)), zap.Duration("backoff_seconds", boff.NextBackOff()), zap.String("tenant_id", tenantID))
+				l.Info("BatchWriteItem", zap.Int("wrote", wrote), zap.Int("unprocessed", len(res.UnprocessedItems)), zap.Duration("backoff_seconds", boff.NextBackOff()))
 			}
 			// need to sleep when re-requesting, per spec
 			if err := time.SleepWithContext(ctx, backoff); err != nil {
