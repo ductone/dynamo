@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go/time"
 	"github.com/cenkalti/backoff/v4"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
 )
 
 // DynamoDB API limit, 25 operations per request
@@ -115,6 +117,7 @@ func (bw *BatchWrite) ConsumedCapacity(cc *ConsumedCapacity) *BatchWrite {
 // some records have been written and some have not. Consult the wrote
 // return amount to figure out which operations have succeeded.
 func (bw *BatchWrite) Run(ctx context.Context) (wrote int, err error) {
+	l := ctxzap.Extract(ctx)
 	if bw.err != nil {
 		return 0, bw.err
 	}
@@ -167,8 +170,12 @@ func (bw *BatchWrite) Run(ctx context.Context) (wrote int, err error) {
 				}
 			}
 
+			backoff := boff.NextBackOff()
+			if backoff > 0 {
+				l.Info("BatchWriteItem", zap.Int("wrote", wrote), zap.Int("unprocessed", len(res.UnprocessedItems)), zap.Duration("backoff_seconds", backoff))
+			}
 			// need to sleep when re-requesting, per spec
-			if err := time.SleepWithContext(ctx, boff.NextBackOff()); err != nil {
+			if err := time.SleepWithContext(ctx, backoff); err != nil {
 				// timed out
 				return wrote, err
 			}
